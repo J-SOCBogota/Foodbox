@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FoodBox - Cocina en Casa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800" x-data="app">
+  <!-- MENÚ DE NAVEGACIÓN -->
+  <nav class="bg-orange-500 p-4 text-white flex justify-between items-center sticky top-0 z-50">
+    <h1 class="text-2xl font-bold">FoodBox</h1>
+    <ul class="flex gap-6 text-lg">
+      <li><a href="#inicio" class="hover:underline">Inicio</a></li>
+      <li><a href="#productos" class="hover:underline">Productos</a></li>
+      <li><a href="#recetas" class="hover:underline">Recetas</a></li>
+      <li><a href="#nosotros" class="hover:underline">Nosotros</a></li>
+      <li><a href="#contacto" class="hover:underline">Contacto</a></li>
+      <li><a href="#login" class="hover:underline">Ingresar</a></li>
+      <li>
+        <button @click="showCart = !showCart" class="bg-white text-orange-500 px-3 py-1 rounded-full">
+          🛒 <span x-text="cart.length"></span>
+        </button>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- BANNER -->
+   <section id="banner">
+    <img src="img/banner9.png" alt="Banner FoodBox" class="w-full h-auto" />
+  </section>
+
+  <!-- PRODUCTOS -->
+  <section id="productos" class="p-10 bg-white">
+    <h2 class="text-2xl font-bold mb-6 text-center">Nuestros Productos</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <template x-for="producto in productos" :key="producto.id">
+        <div class="bg-gray-100 rounded-lg p-4 shadow text-center">
+          <img :src="producto.imagen" :alt="producto.nombre" class="rounded mb-2 h-48 object-contain w-full" />
+          <h3 class="font-bold text-xl" x-text="producto.nombre"></h3>
+          <p class="mb-2">Precio: <span x-text="producto.precio"></span></p>
+          <button @click="agregarAlCarrito(producto)" class="bg-orange-500 text-white px-4 py-2 rounded">Agregar</button>
+        </div>
+      </template>
+    </div>
+  </section>
+  <!-- CARRITO -->
+  <section x-show="showCart" class="fixed top-16 right-4 bg-white shadow-lg p-4 w-80 rounded border z-50">
+    <h2 class="font-bold text-lg mb-2">Carrito</h2>
+    <template x-for="(item, index) in cart" :key="index">
+      <div class="flex justify-between items-center mb-2">
+        <span x-text="item.nombre"></span>
+        <div>
+          <input type="number" class="w-12 border rounded text-center" min="1" x-model.number="item.cantidad">
+          <button @click="eliminarDelCarrito(index)" class="ml-2 text-red-500">✖</button>
+        </div>
+      </div>
+    </template>
+    <p class="mt-2 font-bold">Total: <span x-text="total()"></span></p>
+    <button @click="showCheckout = true; showCart = false" class="bg-orange-500 text-white w-full py-2 mt-2 rounded">Comprar</button>
+  </section>
+
+  <!-- CHECKOUT -->
+  <section id="checkout" class="p-10 bg-gray-100" x-show="showCheckout">
+    <h2 class="text-2xl font-bold mb-4 text-center">Finalizar Compra</h2>
+    <form @submit.prevent="confirmarPedido" 
+          class="max-w-lg mx-auto grid gap-4 bg-white p-6 rounded shadow">
+      <input type="text" placeholder="Nombre completo" class="p-2 border rounded" x-model="cliente.nombre" required />
+      <input type="text" placeholder="Dirección de envío" class="p-2 border rounded" x-model="cliente.direccion" required />
+      <input type="text" placeholder="Ciudad" class="p-2 border rounded" x-model="cliente.ciudad" required />
+      <input type="tel" placeholder="Teléfono de contacto" class="p-2 border rounded" x-model="cliente.telefono" required />
+      <textarea placeholder="Notas adicionales" class="p-2 border rounded" x-model="cliente.notas"></textarea>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" required class="accent-orange-500" />
+        Acepto la <a href="#politicas" class="text-orange-500 underline">política de tratamiento de datos</a>
+      </label>
+      <button class="bg-orange-500 text-white py-2 px-4 rounded">Confirmar Pedido</button>
+    </form>
+  </section>
+
+  <!-- MODAL DE CONFIRMACIÓN -->
+  <div x-show="pedidoConfirmado" 
+       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded shadow-lg text-center w-96 max-h-[90vh] overflow-y-auto">
+      <h3 class="text-xl font-bold text-green-600 mb-2">¡Pedido Confirmado! ✅</h3>
+      <p class="mb-2">Número de pedido: <strong x-text="numeroPedido"></strong></p>
+      <p class="mb-4">Gracias por confiar en <strong>FoodBox</strong>.  
+      Tu pedido está en proceso y llegará pronto a tu dirección.</p>
+
+      <!-- Resumen del pedido -->
+      <h4 class="font-bold mb-2">Resumen de tu pedido:</h4>
+      <ul class="text-left mb-4">
+        <template x-for="item in cart" :key="item.id">
+          <li class="flex justify-between border-b py-1">
+            <span x-text="item.nombre + ' x' + item.cantidad"></span>
+            <span x-text="(parseInt(item.precio.replace(/[^0-9]/g, '')) * item.cantidad).toLocaleString('es-CO', {style: 'currency', currency: 'COP'})"></span>
+          </li>
+        </template>
+      </ul>
+      <p class="font-bold text-lg">Total: <span x-text="total()"></span></p>
+
+      <!-- Datos de envío -->
+      <div class="text-left mt-4">
+        <h4 class="font-bold mb-2">Datos de envío:</h4>
+        <p><strong>Nombre:</strong> <span x-text="cliente.nombre"></span></p>
+        <p><strong>Dirección:</strong> <span x-text="cliente.direccion"></span></p>
+        <p><strong>Ciudad:</strong> <span x-text="cliente.ciudad"></span></p>
+        <p><strong>Teléfono:</strong> <span x-text="cliente.telefono"></span></p>
+        <p x-show="cliente.notas"><strong>Notas:</strong> <span x-text="cliente.notas"></span></p>
+      </div>
+
+      <button @click="cerrarPedido" 
+              class="bg-orange-500 text-white px-4 py-2 rounded mt-4">Aceptar</button>
+    </div>
+  </div>
+
+   <!-- RECETAS -->
+  <section id="recetas" class="p-10 bg-gray-100">
+    <h2 class="text-2xl font-bold mb-6 text-center">Recetas</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white p-4 rounded shadow">
+        <img src="img/receta1.png" class="rounded mb-2" alt="Receta Ensalada Colorida" />
+        <h3 class="text-xl font-bold">Ensalada Colorida</h3>
+        <p>Una combinación de vegetales frescos con aderezo natural.</p>
+      </div>
+      <div class="bg-white p-4 rounded shadow">
+        <img src="img/receta2.png" class="rounded mb-2" alt="Receta Wrap de Pollo" />
+        <h3 class="text-xl font-bold">Wrap de Pollo</h3>
+        <p>Ideal para una cena ligera, incluye proteína y vegetales.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- NOSOTROS -->
+  <section id="nosotros" class="p-10 bg-white text-center">
+    <h2 class="text-3xl font-bold mb-4">¿Quiénes Somos?</h2>
+    <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-8 items-center">
+      <img src="img/nosotros.png" alt="Equipo FoodBox" class="rounded-lg shadow-md w-full" />
+      <div>
+        <p class="text-lg leading-relaxed">
+          En <strong>FoodBox</strong> creemos que cocinar en casa puede ser fácil, delicioso y divertido. 
+          Seleccionamos ingredientes frescos y de calidad, los porcionamos y los llevamos hasta tu puerta con recetas paso a paso.
+        </p>
+        <p class="text-lg leading-relaxed mt-4">
+          Nuestro propósito es ayudarte a ahorrar tiempo, reducir desperdicios y reconectar con el placer de cocinar en casa.
+        </p>
+      </div>
+    </div>
+  </section>
+</body>
+</html>
+
+  <!-- CONTACTO -->
+  <section id="contacto" class="p-10 bg-gray-100">
+    <h2 class="text-2xl font-bold mb-4 text-center">Contáctanos</h2>
+    <form class="max-w-lg mx-auto grid gap-4" @submit.prevent="enviarContacto">
+      <input type="text" placeholder="Nombre" class="p-2 border rounded" x-model="contacto.nombre" required />
+      <input type="email" placeholder="Correo electrónico" class="p-2 border rounded" x-model="contacto.correo" required />
+      <textarea placeholder="Mensaje" class="p-2 border rounded" x-model="contacto.mensaje" required></textarea>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" required class="accent-orange-500" />
+        Acepto la <a href="#politicas" class="text-orange-500 underline">política de tratamiento de datos</a>
+      </label>
+      <button class="bg-orange-500 text-white py-2 px-4 rounded">Enviar</button>
+    </form>
+    <p x-show="contactoEnviado" class="text-green-600 text-center mt-4">¡Gracias por contactarnos! Te responderemos pronto. ✅</p>
+  </section>
+
+  <!-- LOGIN -->
+  <section id="login" class="p-10 text-center">
+    <h2 class="text-2xl font-bold mb-4">Miembros FoodBox</h2>
+    <p>Inicia sesión para ver tus pedidos, recetas guardadas y más.</p>
+    <form class="max-w-md mx-auto grid gap-4 mt-4">
+      <input type="email" placeholder="Correo" class="p-2 border rounded" />
+      <input type="password" placeholder="Contraseña" class="p-2 border rounded" />
+      <button class="bg-orange-500 text-white py-2 px-4 rounded">Ingresar</button>
+    </form>
+  </section>
+
+  <!-- POLÍTICAS -->
+  <section id="politicas" class="p-10 bg-white">
+    <h2 class="text-2xl font-bold mb-4 text-center">Política de Tratamiento de Datos</h2>
+    <div class="max-w-3xl mx-auto text-justify space-y-4">
+      <p>
+        En <strong>FoodBox</strong> nos comprometemos a proteger tu información personal. 
+        Los datos recolectados a través de nuestros formularios se utilizan únicamente para procesar pedidos, 
+        responder consultas y mejorar la experiencia del usuario.
+      </p>
+      <p>
+        No compartimos tu información con terceros sin tu consentimiento expreso, salvo en casos de obligación legal. 
+        Tienes derecho a solicitar la actualización o eliminación de tus datos en cualquier momento.
+      </p>
+      <p>
+        Al aceptar esta política, autorizas a FoodBox a tratar tus datos conforme a lo establecido en la Ley 1581 de 2012 (Colombia).
+      </p>
+    </div>
+  </section>
+
+  <!-- SCRIPTS -->
+  <script>
+    const app = {
+      showCart: false,
+      showCheckout: false,
+      pedidoConfirmado: false,
+      numeroPedido: "",
+      contactoEnviado: false,
+      cart: [],
+      cliente: { nombre: "", direccion: "", ciudad: "", telefono: "", notas: "" },
+      contacto: { nombre: "", correo: "", mensaje: "" },
+      productos: [
+        { id: 1, nombre: "Caja Familiar", precio: "$95.000", imagen: "img/caja-familiar.png", cantidad: 1 },
+        { id: 2, nombre: "Caja Fit", precio: "$89.000", imagen: "img/caja-fit.png", cantidad: 1 },
+        { id: 3, nombre: "Caja Parejas", precio: "$75.000", imagen: "img/caja-parejas.png", cantidad: 1 },
+      ],
+      agregarAlCarrito(producto) {
+        const existente = this.cart.find(p => p.id === producto.id);
+        if (existente) {
+          existente.cantidad += 1;
+        } else {
+          this.cart.push({ ...producto });
+        }
+      },
+      eliminarDelCarrito(index) {
+        this.cart.splice(index, 1);
+      },
+      total() {
+        return this.cart.reduce((sum, p) => {
+          const valor = parseInt(p.precio.replace(/[^0-9]/g, ''));
+          return sum + valor * p.cantidad;
+        }, 0).toLocaleString("es-CO", { style: "currency", currency: "COP" });
+      },
+      confirmarPedido() {
+        this.numeroPedido = "FOOD" + Math.floor(Math.random() * 9000 + 1000);
+        this.pedidoConfirmado = true;
+      },
+      cerrarPedido() {
+        this.pedidoConfirmado = false;
+        this.showCheckout = false;
+        this.cart = [];
+        this.cliente = { nombre: "", direccion: "", ciudad: "", telefono: "", notas: "" };
+      },
+      enviarContacto() {
+        this.contactoEnviado = true;
+        this.contacto = { nombre: "", correo: "", mensaje: "" };
+        setTimeout(() => this.contactoEnviado = false, 4000);
+      }
+    };
+  </script>
+</body>
+</html>
